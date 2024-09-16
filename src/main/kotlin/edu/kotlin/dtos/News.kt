@@ -5,7 +5,6 @@ import kotlinx.serialization.Contextual
 import kotlinx.serialization.Serializable
 import java.net.URI
 import java.time.Instant
-import java.time.OffsetDateTime
 import kotlin.math.exp
 
 @Serializable(with = NewsSerializer::class)

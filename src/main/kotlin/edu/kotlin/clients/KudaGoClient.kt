@@ -11,15 +11,15 @@ import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.json.Json
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
-import java.time.LocalDate
 
 class KudaGoClient {
 
-    val log: Logger = LoggerFactory.getLogger(KudaGoClient::class.java)
+    private val log: Logger = LoggerFactory.getLogger(KudaGoClient::class.java)
     private val client: HttpClient = HttpClient(Java)
     private val baseUrl: String = "https://kudago.com/public-api/v1.4/news/"
 
     fun getNews(count: Int = 100): List<News> {
+        log.info("Start News query of size: $count")
         val responseStr: String = runBlocking {
             client.request(baseUrl) {
                 method = HttpMethod.Get
@@ -32,6 +32,7 @@ class KudaGoClient {
                 parameter("location", "spb")
             }.bodyAsText()
         }
+        log.info("Finish News query of size: $count")
         val newsResponse: NewsResponse = Json.decodeFromString(responseStr)
         return newsResponse.results
     }

@@ -1,12 +1,14 @@
 package edu.kotlin.dtos
 
+import edu.kotlin.serializers.NewsSerializer
 import kotlinx.serialization.Contextual
 import kotlinx.serialization.Serializable
 import java.net.URI
+import java.time.Instant
 import java.time.OffsetDateTime
 import kotlin.math.exp
 
-@Serializable
+@Serializable(with = NewsSerializer::class)
 data class News(
     val id: Long,
     val title: String,
@@ -15,7 +17,7 @@ data class News(
     @Contextual val siteUrl: URI,
     val favoritesCount: Long,
     val commentsCount: Long,
-    @Contextual val publishedDate: OffsetDateTime,
+    @Contextual val publicationDate: Instant,
 ) {
     val rating: Double by lazy {
         1 / (1 + exp(-(favoritesCount.toDouble() / (commentsCount + 1))))

@@ -14,8 +14,11 @@ class CSVNewsSaver {
 
     fun saveNews(pathStr: String, news: Collection<News>) {
         try {
-            log.info("Start saving news in: $pathStr")
             val file: File = Paths.get(pathStr).toFile()
+            if (file.exists() || file.isDirectory) {
+                throw IllegalArgumentException("File already exist: $pathStr")
+            }
+            log.info("Start saving news in: $pathStr")
             BufferedWriter(FileWriter(file)).use { bw ->
                 bw.write(""""id","title","place","description","siteUrl","favorites_count","comments_count","publication_date","rating"""")
                 bw.newLine()

@@ -21,7 +21,7 @@ class KudaGoClient {
     fun getNews(count: Int = 100): List<News> {
         log.info("Start News query of size: $count")
         val responseStr: String = runBlocking {
-            client.request(baseUrl) {
+            val request = client.request(baseUrl) {
                 method = HttpMethod.Get
                 parameter("page_size", count)
                 parameter(
@@ -30,7 +30,13 @@ class KudaGoClient {
                 )
                 parameter("text_format", "text")
                 parameter("location", "spb")
-            }.bodyAsText()
+            }
+            if (request.status.value != 200) {
+                log.error("Request failed: ${request.status}")
+                return@runBlocking ""
+            } else {
+                return@runBlocking request.bodyAsText()
+            }
         }
         log.info("Finish News query of size: $count")
         val newsResponse: NewsResponse = Json.decodeFromString(responseStr)

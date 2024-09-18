@@ -18,8 +18,12 @@ sourceSets {
     }
 }
 dependencies {
-    testImplementation platform('org.junit:junit-bom:5.10.0')
+    // https://mvnrepository.com/artifact/io.ktor/ktor-client-mock-jvm
+    implementation 'io.ktor:ktor-client-mock:2.3.12'
+    testImplementation platform('org.junit:junit-bom:5.10.3')
     testImplementation 'org.junit.jupiter:junit-jupiter'
+    // https://mvnrepository.com/artifact/org.assertj/assertj-core
+    testImplementation 'org.assertj:assertj-core:3.26.3'
     // https://mvnrepository.com/artifact/io.ktor/ktor-client-java-jvm
     implementation 'io.ktor:ktor-client-java-jvm:2.3.12'
     // https://mvnrepository.com/artifact/org.jetbrains.kotlinx/kotlinx-serialization-json-jvm

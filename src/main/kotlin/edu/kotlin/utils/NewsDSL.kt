@@ -50,7 +50,7 @@ abstract class Tag (val name: String) : Element {
 
 abstract class TagWithText(name: String) : Tag(name) {
     operator fun String.unaryPlus() {
-        children.add(TextElement(this))
+        children.add(TextElement("$this</br>"))
     }
 }
 
@@ -59,6 +59,7 @@ class Root: TagWithText("root") {
     override fun render(builder: StringBuilder, indent: String) {
         val separator = System.lineSeparator()
         builder.append("$indent<html>$separator")
+        builder.append("$indent<head><meta charset=\"utf-8\"></head>$separator")
         builder.append("$indent<body>$separator")
         for (c in children) {
             c.render(builder, "$indent  ")
@@ -67,7 +68,7 @@ class Root: TagWithText("root") {
         builder.append("$indent</html>$separator")
     }
     fun text(init: Text.() -> Unit) = initTag(Text(), init)
-    fun header(level: String, init: Header.() -> Unit) {
+    fun header(level: Int, init: Header.() -> Unit) {
         val header = initTag(Header(), init)
         header.level = level
     }
@@ -76,10 +77,10 @@ class Root: TagWithText("root") {
 
 class Header : TagWithText("header") {
 
-    var level: String
-        get() = attributes["level"]!!
+    var level: Int
+        get() = attributes["level"]!!.toInt()
         set(value) {
-            attributes["level"] = value
+            attributes["level"] = value.toString()
         }
 
     override fun render(builder: StringBuilder, indent: String) {
@@ -114,7 +115,7 @@ class A : BodyTag("a") {
         }
 }
 
-fun newsDSL(init: Root.() -> Unit): Root {
+fun ownDSL(init: Root.() -> Unit): Root {
     val root = Root()
     root.init()
     return root

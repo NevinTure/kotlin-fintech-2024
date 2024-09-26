@@ -6,6 +6,7 @@ import org.slf4j.LoggerFactory
 import java.io.BufferedWriter
 import java.io.File
 import java.io.FileWriter
+import java.io.IOException
 import java.nio.file.Paths
 
 class CSVNewsSaver {
@@ -22,17 +23,22 @@ class CSVNewsSaver {
             throw IllegalArgumentException("File already exist: $pathStr")
         }
         log.info("Start saving news in: $pathStr")
-        BufferedWriter(FileWriter(file)).use { bw ->
-            bw.write(FIELDS)
-            bw.newLine()
-            news.forEach {
-                bw.write(
-                    "${it.id},${it.title},${it.place}" +
-                            ",${it.description},${it.siteUrl},${it.favoritesCount}" +
-                            ",${it.commentsCount},${it.publicationDate},${it.rating}"
-                )
+        try {
+            BufferedWriter(FileWriter(file)).use { bw ->
+                bw.write(FIELDS)
                 bw.newLine()
+                news.forEach {
+                    bw.write(
+                        "${it.id},${it.title},${it.place}" +
+                                ",${it.description},${it.siteUrl},${it.favoritesCount}" +
+                                ",${it.commentsCount},${it.publicationDate},${it.rating}"
+                    )
+                    bw.newLine()
+                }
             }
+        } catch (e: IOException) {
+            log.error(e.message, e)
+            return
         }
         log.info("Finish saving news in: $pathStr")
     }

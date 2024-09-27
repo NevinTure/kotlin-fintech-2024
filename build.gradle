@@ -1,7 +1,7 @@
 plugins {
     id 'java'
-    id 'org.jetbrains.kotlin.jvm' version '2.0.20'
-    id 'org.jetbrains.kotlin.plugin.serialization' version '2.0.20'
+    id 'org.jetbrains.kotlin.jvm' version '2.0.20' apply(true)
+    id 'org.jetbrains.kotlin.plugin.serialization' version '2.0.20' apply(true)
 }
 
 group 'edu.kotlin'
@@ -18,8 +18,12 @@ sourceSets {
     }
 }
 dependencies {
-    testImplementation platform('org.junit:junit-bom:5.10.0')
+    // https://mvnrepository.com/artifact/io.ktor/ktor-client-mock-jvm
+    implementation 'io.ktor:ktor-client-mock:2.3.12'
+    testImplementation platform('org.junit:junit-bom:5.10.3')
     testImplementation 'org.junit.jupiter:junit-jupiter'
+    // https://mvnrepository.com/artifact/org.assertj/assertj-core
+    testImplementation 'org.assertj:assertj-core:3.26.3'
     // https://mvnrepository.com/artifact/io.ktor/ktor-client-java-jvm
     implementation 'io.ktor:ktor-client-java-jvm:2.3.12'
     // https://mvnrepository.com/artifact/org.jetbrains.kotlinx/kotlinx-serialization-json-jvm
@@ -27,6 +31,9 @@ dependencies {
     implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk8"
     // https://mvnrepository.com/artifact/ch.qos.logback/logback-classic
     implementation 'ch.qos.logback:logback-classic:1.5.7'
+    // https://mvnrepository.com/artifact/io.ktor/ktor-client-content-negotiation-jvm
+    implementation 'io.ktor:ktor-client-content-negotiation-jvm:2.3.12'
+
 }
 
 test {

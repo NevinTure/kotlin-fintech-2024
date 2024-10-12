@@ -7,7 +7,8 @@ import io.ktor.client.engine.java.*
 import io.ktor.client.request.*
 import io.ktor.client.statement.*
 import io.ktor.http.*
-import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.*
+import kotlinx.coroutines.channels.Channel
 import kotlinx.serialization.json.Json
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
@@ -33,14 +34,50 @@ class KudaGoClient(private val client: HttpClient = HttpClient(Java)) {
                     parameter("fields", FIELDS)
                     parameter("text_format", "text")
                     parameter("location", "spb")
+                    parameter("expand", "place")
                 }.bodyAsText()
             }
             log.info("Finish News query of size: $count")
             val newsResponse: NewsResponse = Json.decodeFromString(responseStr)
             return newsResponse.results
         } catch (e: Exception) {
-            log.error("Request failed: ${e.message}")
+            log.error("Request failed: ${e.message}", e)
             return listOf()
         }
+    }
+
+    @OptIn(DelicateCoroutinesApi::class)
+    suspend fun getNewsAsync(count: Int = 100, workers: Int = 10): List<News> = coroutineScope {
+        newFixedThreadPoolContext(workers, "news-thread-pool")
+        val channel = Channel<NewsResponse>()
+        val perPage: Int = 100.coerceAtMost(Math.ceilDiv(count, workers))
+        val pages = Math.ceilDiv(count, perPage)
+        for (i in 1..pages) {
+            launch {
+                try {
+                    log.info("Start News query of size: $perPage on page: $i")
+                    channel.send(Json.decodeFromString(client.request(BASE_URL) {
+                        method = HttpMethod.Get
+                        parameter("page_size", perPage)
+                        parameter("fields", FIELDS)
+                        parameter("text_format", "text")
+                        parameter("location", "spb")
+                        parameter("page", i)
+                        parameter("expand", "place")
+                    }.bodyAsText()))
+                } catch (e: Exception) {
+                    log.error("Request failed: ${e.message}", e)
+                }
+            }
+        }
+        val news: MutableList<News> = mutableListOf()
+        launch {
+            repeat(pages) {
+                val response = channel.receive()
+                news.addAll(response.results)
+            }
+            channel.close()
+        }
+        return@coroutineScope news
     }
 }

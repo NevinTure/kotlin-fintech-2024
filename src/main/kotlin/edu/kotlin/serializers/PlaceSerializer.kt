@@ -19,7 +19,7 @@ object PlaceSerializer : KSerializer<String> {
         require(decoder is JsonDecoder)
         val jsonElement: JsonElement = decoder.decodeJsonElement()
         return when (jsonElement) {
-            is JsonObject -> jsonElement.jsonObject["name"]!!.toString()
+            is JsonObject -> jsonElement.jsonObject["title"]!!.toString()
             else -> "Unknown"
         }
     }

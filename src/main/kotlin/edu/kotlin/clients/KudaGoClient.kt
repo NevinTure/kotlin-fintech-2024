@@ -48,12 +48,12 @@ class KudaGoClient(private val client: HttpClient = HttpClient(Java)) {
 
     @OptIn(DelicateCoroutinesApi::class)
     suspend fun getNewsAsync(count: Int = 100, workers: Int = 10): List<News> = coroutineScope {
-        newFixedThreadPoolContext(workers, "news-thread-pool")
+        val context = newFixedThreadPoolContext(workers, "news-client-thread")
         val channel = Channel<NewsResponse>()
         val perPage: Int = 100.coerceAtMost(Math.ceilDiv(count, workers))
         val pages = Math.ceilDiv(count, perPage)
         for (i in 1..pages) {
-            launch {
+            launch(context) {
                 try {
                     log.info("Start News query of size: $perPage on page: $i")
                     channel.send(Json.decodeFromString(client.request(BASE_URL) {
@@ -74,6 +74,7 @@ class KudaGoClient(private val client: HttpClient = HttpClient(Java)) {
         launch {
             repeat(pages) {
                 val response = channel.receive()
+                println(response.toString())
                 news.addAll(response.results)
             }
             channel.close()

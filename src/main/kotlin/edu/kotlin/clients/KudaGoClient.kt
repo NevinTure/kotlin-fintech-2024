@@ -50,32 +50,43 @@ class KudaGoClient(private val client: HttpClient = HttpClient(Java)) {
     suspend fun getNewsAsync(count: Int = 100, workers: Int = 10): List<News> = coroutineScope {
         val context = newFixedThreadPoolContext(workers, "news-client-thread")
         val channel = Channel<NewsResponse>()
-        val perPage: Int = 100.coerceAtMost(Math.ceilDiv(count, workers))
-        val pages = Math.ceilDiv(count, perPage)
-        for (i in 1..pages) {
+        val perPage: Int = Math.ceilDiv(count, workers)
+        for (i in 1..workers) {
             launch(context) {
-                try {
-                    log.info("Start News query of size: $perPage on page: $i")
-                    channel.send(Json.decodeFromString(client.request(BASE_URL) {
-                        method = HttpMethod.Get
-                        parameter("page_size", perPage)
-                        parameter("fields", FIELDS)
-                        parameter("text_format", "text")
-                        parameter("location", "spb")
-                        parameter("page", i)
-                        parameter("expand", "place")
-                    }.bodyAsText()))
-                } catch (e: Exception) {
-                    log.error("Request failed: ${e.message}", e)
-                }
+                channel.send(run {
+                    try {
+                        log.info("Start News query of size: $perPage on page: $i")
+                        val response = client.request(BASE_URL) {
+                            method = HttpMethod.Get
+                            parameter("page_size", perPage)
+                            parameter("fields", FIELDS)
+                            parameter("text_format", "text")
+                            parameter("location", "spb")
+                            parameter("page", i)
+                            parameter("expand", "place")
+                        }
+                        if (response.contentType() == ContentType.Text.Xml) {
+                            log.error("Request failed on page: $i")
+                            return@run NewsResponse(emptyList())
+                        }
+                        log.info("Finish News query of size: $perPage on page: $i")
+                        return@run Json.decodeFromString<NewsResponse>(response.bodyAsText())
+                    } catch (e: Exception) {
+                        log.error("Request failed: ${e.message} on page: $i", e)
+                        return@run NewsResponse(emptyList())
+                    }
+                })
             }
         }
         val news: MutableList<News> = mutableListOf()
         launch {
-            repeat(pages) {
-                val response = channel.receive()
-                println(response.toString())
-                news.addAll(response.results)
+            repeat(workers) {
+                try {
+                    val response = channel.receive()
+                    news.addAll(response.results)
+                } catch (e: Exception) {
+                    log.error(e.message, e)
+                }
             }
             channel.close()
         }

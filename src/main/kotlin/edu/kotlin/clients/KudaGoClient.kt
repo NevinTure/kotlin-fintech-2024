@@ -7,7 +7,8 @@ import io.ktor.client.engine.java.*
 import io.ktor.client.request.*
 import io.ktor.client.statement.*
 import io.ktor.http.*
-import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.*
+import kotlinx.coroutines.channels.Channel
 import kotlinx.serialization.json.Json
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
@@ -33,14 +34,62 @@ class KudaGoClient(private val client: HttpClient = HttpClient(Java)) {
                     parameter("fields", FIELDS)
                     parameter("text_format", "text")
                     parameter("location", "spb")
+                    parameter("expand", "place")
                 }.bodyAsText()
             }
             log.info("Finish News query of size: $count")
             val newsResponse: NewsResponse = Json.decodeFromString(responseStr)
             return newsResponse.results
         } catch (e: Exception) {
-            log.error("Request failed: ${e.message}")
+            log.error("Request failed: ${e.message}", e)
             return listOf()
         }
+    }
+
+    @OptIn(DelicateCoroutinesApi::class)
+    suspend fun getNewsAsync(count: Int = 100, workers: Int = 10): List<News> = coroutineScope {
+        val context = newFixedThreadPoolContext(workers, "news-client-thread")
+        val channel = Channel<NewsResponse>()
+        val perPage: Int = Math.ceilDiv(count, workers)
+        for (i in 1..workers) {
+            launch(context) {
+                channel.send(run {
+                    try {
+                        log.info("Start News query of size: $perPage on page: $i")
+                        val response = client.request(BASE_URL) {
+                            method = HttpMethod.Get
+                            parameter("page_size", perPage)
+                            parameter("fields", FIELDS)
+                            parameter("text_format", "text")
+                            parameter("location", "spb")
+                            parameter("page", i)
+                            parameter("expand", "place")
+                        }
+                        if (response.contentType() == ContentType.Text.Xml) {
+                            log.error("Request failed on page: $i")
+                            return@run NewsResponse(emptyList())
+                        }
+                        log.info("Finish News query of size: $perPage on page: $i")
+                        return@run Json.decodeFromString<NewsResponse>(response.bodyAsText())
+                    } catch (e: Exception) {
+                        log.error("Request failed: ${e.message} on page: $i", e)
+                        return@run NewsResponse(emptyList())
+                    }
+                })
+            }
+        }
+        val news: MutableList<News> = mutableListOf()
+        launch {
+            repeat(workers) {
+                try {
+                    val response = channel.receive()
+                    news.addAll(response.results)
+                } catch (e: Exception) {
+                    log.error(e.message, e)
+                }
+            }
+            channel.close()
+        }
+        return@coroutineScope news
     }
 }

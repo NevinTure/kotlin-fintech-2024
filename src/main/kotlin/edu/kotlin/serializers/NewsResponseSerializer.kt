@@ -28,11 +28,11 @@ object NewsResponseSerializer: KSerializer<NewsResponse> {
     override fun deserialize(decoder: Decoder): NewsResponse {
         require(decoder is JsonDecoder)
         val root = decoder.decodeJsonElement()
-        val results: List<News> = root.jsonObject["results"]!!
-            .jsonArray
-            .map {
+        val results: List<News> = root.jsonObject["results"]
+            ?.jsonArray
+            ?.map {
                 news -> decoder.json.decodeFromJsonElement(news)
-            }
+            } ?: emptyList()
         return NewsResponse(results)
     }
 }
